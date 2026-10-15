@@ -222,7 +222,7 @@ export function useWebSocket(): UseWebSocketReturn {
               role: 'operator',
               scopes: ['operator.admin', 'operator.read', 'operator.write', 'operator.approvals', 'operator.pairing'],
               auth: { token },
-              caps: ['tool-events']
+              caps: ['tool-events', 'inline-widgets']
             }
           }));
           onEvent.current?.(msg);

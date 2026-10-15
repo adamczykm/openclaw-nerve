@@ -69,7 +69,9 @@ export const securityHeaders: MiddlewareHandler = async (c, next) => {
   await next();
 
   // Content Security Policy - defense in depth against XSS
-  c.header('Content-Security-Policy', getCspDirectives());
+  if (c.req.path !== '/api/widgets/document' || !c.res.headers.get('Content-Security-Policy')) {
+    c.header('Content-Security-Policy', getCspDirectives());
+  }
 
   // Prevent clickjacking
   c.header('X-Frame-Options', 'SAMEORIGIN');

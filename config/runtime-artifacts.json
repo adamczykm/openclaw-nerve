@@ -1,0 +1,27 @@
+{
+  "openclaw": "2026.10.3",
+  "nodeVersion": "24.22.0",
+  "uvVersion": "0.11.21",
+  "linux": {
+    "x86_64": {
+      "node": {
+        "url": "https://nodejs.org/dist/v24.22.0/node-v24.22.0-linux-x64.tar.xz",
+        "sha256": "cc2f601cee82d9a5a233302fe307abc600727035fd7d2c3a3571755989e95008"
+      },
+      "uv": {
+        "url": "https://files.pythonhosted.org/packages/de/70/3347f736911b73df1f31c0823d6502891f3c49fdeb157fe8060b18c08d1c/uv-0.11.21-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "sha256": "b9ecdefa81db7e966d1655988cad6f840316228381dd69131ebc4ae9362bbccd"
+      }
+    },
+    "aarch64": {
+      "node": {
+        "url": "https://nodejs.org/dist/v24.22.0/node-v24.22.0-linux-arm64.tar.xz",
+        "sha256": "fef00bb4d36e1c50104a9775a10359beee98f162b4104dd12472c75065c6a143"
+      },
+      "uv": {
+        "url": "https://files.pythonhosted.org/packages/3c/04/c5503fc1015095db71c280526f45537f3bb06855ce281ff1761b85d149bf/uv-0.11.21-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_1_aarch64.whl",
+        "sha256": "00193e4e077c27ee3d66da356744dbf0b3aa59356dfbd9a9efb1dc8469af8ad7"
+      }
+    }
+  }
+}

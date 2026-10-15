@@ -32,6 +32,8 @@ app.post('/api/upload-reference/resolve', rateLimitGeneral, async (c) => {
     }
 
     const form = await c.req.formData();
+    const namespace = form.get('namespace') || 'production';
+    if (namespace !== 'production' && namespace !== 'demo') return c.json({ ok: false, error: 'Invalid data namespace' }, 400);
     const values = [...form.getAll('files'), ...form.getAll('file')];
     const files = values.filter((value): value is File => value instanceof File);
 
@@ -42,6 +44,7 @@ app.post('/api/upload-reference/resolve', rateLimitGeneral, async (c) => {
     const items = await Promise.all(files.map(async (file) => {
       const bytes = new Uint8Array(await file.arrayBuffer());
       return importExternalUploadToCanonicalReference({
+        namespace,
         originalName: file.name,
         mimeType: file.type,
         bytes,

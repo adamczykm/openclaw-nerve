@@ -4,10 +4,12 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { resolveAgentWorkspace } from './agent-workspace.js';
 import { getWorkspaceRoot, resolveWorkspacePath, resolveWorkspacePathForRoot } from './file-utils.js';
+import { archiveCEOFile, type CEOArchiveReceipt, type CEODataNamespace } from './ceo-intake.js';
 
 export type CanonicalUploadReferenceKind = 'direct_workspace_reference' | 'imported_workspace_reference';
 
 export interface CanonicalUploadReference {
+  ceoArchive?: CEOArchiveReceipt;
   kind: CanonicalUploadReferenceKind;
   canonicalPath: string;
   absolutePath: string;
@@ -143,6 +145,7 @@ export async function resolveDirectWorkspaceReference(relativePath: string, agen
 }
 
 export async function importExternalUploadToCanonicalReference(params: {
+  namespace?: CEODataNamespace;
   originalName: string;
   mimeType?: string;
   bytes: Uint8Array;
@@ -156,13 +159,18 @@ export async function importExternalUploadToCanonicalReference(params: {
     throw new Error('Resolved attachment path is outside the workspace root.');
   }
 
-  await fs.mkdir(targetDir, { recursive: true });
-  await fs.writeFile(stagedPath, params.bytes);
+  await fs.mkdir(targetDir, { recursive: true, mode: 0o700 });
+  // Reject a staging directory redirected outside the workspace by a symlink.
+  const actualDir = await fs.realpath(targetDir);
+  const actualRoot = await fs.realpath(workspaceRoot);
+  if (!isWithinDir(actualDir, actualRoot)) throw new Error('Resolved attachment path is outside the workspace root.');
+  await fs.writeFile(stagedPath, params.bytes, { flag: 'wx', mode: 0o600 });
+  const ceoArchive = await archiveCEOFile(stagedPath, params.namespace || 'production');
 
-  return buildCanonicalReference({
+  return { ...await buildCanonicalReference({
     kind: 'imported_workspace_reference',
     absolutePath: stagedPath,
     originalName: params.originalName,
     mimeType: params.mimeType,
-  });
+  }), ...(ceoArchive ? { ceoArchive } : {}) };
 }

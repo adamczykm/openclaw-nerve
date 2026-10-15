@@ -14,6 +14,7 @@ import { extractChartMarkers } from '@/features/charts/extractCharts';
 import { extractEditBlocks, extractWriteBlocks } from '@/features/chat/edit-blocks';
 import { extractImages } from '@/features/chat/extractImages';
 import type { MessageImage } from '@/features/chat/types';
+import { extractCanvasPreviews } from '@/features/widgets/canvasPreview';
 
 function toArray<T>(value: T | T[] | undefined): T[] {
   if (Array.isArray(value)) return value;
@@ -293,6 +294,7 @@ function splitSystemEvents(text: string): Array<{ role: 'event' | 'user'; text: 
 }
 
 export function splitToolCallMessage(m: ChatMessage, options: { sessionKey?: string } = {}): ChatMsg[] {
+  const widgets = extractCanvasPreviews(m, options.sessionKey);
   const ts = m.timestamp || m.createdAt || m.ts || null;
   const parsedTimestamp = ts ? new Date(ts as string | number) : null;
   const hasPersistedTimestamp = Boolean(parsedTimestamp && Number.isFinite(parsedTimestamp.getTime()));
@@ -381,6 +383,7 @@ export function splitToolCallMessage(m: ChatMessage, options: { sessionKey?: str
         }
       }
 
+      if (widgets.length > 0) result.push({ role: 'assistant', html: '', rawText: '', timestamp, widgets });
       return result;
     }
   }
@@ -448,6 +451,7 @@ export function splitToolCallMessage(m: ChatMessage, options: { sessionKey?: str
   const sysNotif = m.role === 'user' ? detectSystemNotification(rawText) : { match: false, label: '' };
 
   return [{
+    ...(widgets.length ? { widgets } : {}),
     role: m.role as ChatMsgRole,
     html: renderToolResults(renderMarkdown(text)),
     rawText: text,

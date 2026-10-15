@@ -31,6 +31,7 @@ export function isLikelyDuplicateMessage(a: ChatMsg, b: ChatMsg): boolean {
 
   return (
     a.role === b.role &&
+    JSON.stringify(a.widgets || []) === JSON.stringify(b.widgets || []) &&
     normalizeComparableText(a.rawText) === normalizeComparableText(b.rawText) &&
     Boolean(a.isThinking) === Boolean(b.isThinking) &&
     (a.toolGroup?.length || 0) === (b.toolGroup?.length || 0) &&

@@ -504,7 +504,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         }
 
         const finalData = extractFinalMessage(cp);
-        const finalMessages = processChatMessages(extractFinalMessages(cp));
+        const finalMessages = processChatMessages(extractFinalMessages(cp), { sessionKey: currentSk });
 
         if (finalMessages.length > 0) {
           const merged = mergeFinalMessages(getAllMessages(), finalMessages);
@@ -539,7 +539,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
         const partialMessagesRaw = extractFinalMessages(cp);
         if (partialMessagesRaw.length > 0) {
-          const partialMessages = processChatMessages(partialMessagesRaw);
+          const partialMessages = processChatMessages(partialMessagesRaw, { sessionKey: currentSk });
           if (partialMessages.length > 0) {
             const merged = mergeFinalMessages(getAllMessages(), partialMessages);
             applyMessageWindow(merged, false);

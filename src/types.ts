@@ -114,7 +114,7 @@ export interface TokenEntry {
 export type ChatMessageRole = 'user' | 'assistant' | 'tool' | 'toolResult' | 'system';
 
 /** Discriminated content block types */
-export type ContentBlockType = 'text' | 'tool_use' | 'toolCall' | 'tool_result' | 'toolResult' | 'image' | 'thinking';
+export type ContentBlockType = 'text' | 'tool_use' | 'toolCall' | 'tool_result' | 'toolResult' | 'image' | 'thinking' | 'canvas';
 
 /** A single chat message (user, assistant, tool, or system). */
 export interface ChatMessage {
@@ -135,6 +135,7 @@ export interface ChatMessage {
 /** A content block within a multi-part message (text, tool call, image, etc.). */
 export interface ContentBlock {
   type: ContentBlockType;
+  preview?: { kind?: string; surface?: string; viewId?: string; title?: string; preferredHeight?: number; mcpApp?: unknown };
   text?: string;
   name?: string;
   input?: Record<string, unknown>;

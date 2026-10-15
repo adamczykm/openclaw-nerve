@@ -180,6 +180,7 @@ function getFlatIndexFromGrouped(grouped: Map<SlashCommandCategory, SlashCommand
 }
 
 interface StagedAttachment {
+  ceoArchive?: UploadAttachmentDescriptor['ceoArchive'];
   id: string;
   file: File;
   origin: 'upload' | 'server_path';
@@ -233,6 +234,7 @@ export function resetInputBarComposerSnapshotForTests() {
 }
 
 interface CanonicalUploadReference {
+  ceoArchive?: UploadAttachmentDescriptor['ceoArchive'];
   kind: 'direct_workspace_reference' | 'imported_workspace_reference';
   canonicalPath: string;
   absolutePath: string;
@@ -355,8 +357,9 @@ function hasResolvableLocalPath(file: File): boolean {
   return Boolean(fileWithPath.path || fileWithPath.webkitRelativePath);
 }
 
-async function importBrowserUploadsToCanonicalReferences(files: File[]): Promise<CanonicalUploadReference[]> {
+async function importBrowserUploadsToCanonicalReferences(files: File[], namespace: 'production' | 'demo' = 'production'): Promise<CanonicalUploadReference[]> {
   const formData = new FormData();
+  formData.append('namespace', namespace);
   files.forEach((file) => formData.append('files', file, file.name));
 
   const response = await fetch('/api/upload-reference/resolve', {
@@ -407,6 +410,8 @@ export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function Input
   const [draftText, setDraftText] = useState(() => persistedComposerSnapshot.text);
   const [stagedAttachments, setStagedAttachments] = useState<StagedAttachment[]>(() => persistedComposerSnapshot.stagedAttachments);
   const [uploadConfig, setUploadConfig] = useState<UploadFeatureConfig>(DEFAULT_UPLOAD_FEATURE_CONFIG);
+  const [ceoIntakeEnabled, setCEOIntakeEnabled] = useState(false);
+  const [ceoNamespace, setCEONamespace] = useState<'production' | 'demo'>('production');
   const [attachmentError, setAttachmentError] = useState<string | null>(() => persistedComposerSnapshot.attachmentError);
   const [isDragging, setIsDragging] = useState(false);
   const [isPreparingInline, setIsPreparingInline] = useState(false);
@@ -567,6 +572,7 @@ export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function Input
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (controller.signal.aborted || !data) return;
+        setCEOIntakeEnabled(data.ceoIntakeEnabled === true);
         const nextConfig: UploadFeatureConfig = {
           twoModeEnabled: Boolean(data.twoModeEnabled),
           inlineEnabled: Boolean(data.inlineEnabled),
@@ -779,7 +785,7 @@ export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function Input
 
     if (accepted.length > 0) {
       try {
-        const staged = await importBrowserUploadsToCanonicalReferences(accepted);
+        const staged = await importBrowserUploadsToCanonicalReferences(accepted, ceoNamespace);
         const next = staged.map((artifact, index) => {
           const sourceFile = accepted[index];
           const mimeType = artifact.mimeType || sourceFile?.type || 'application/octet-stream';
@@ -794,6 +800,7 @@ export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function Input
             id: crypto.randomUUID ? crypto.randomUUID() : `att-${Date.now()}-${Math.random().toString(36).slice(2)}`,
             file: stagedFile,
             origin: 'upload' as const,
+            ceoArchive: artifact.ceoArchive,
             mode: 'file_reference' as const,
             previewUrl: mimeType.startsWith('image/') && sourceFile ? URL.createObjectURL(sourceFile) : undefined,
             relativePath: artifact.canonicalPath,
@@ -809,7 +816,7 @@ export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function Input
     if (firstError) {
       setAttachmentError(firstError);
     }
-  }, [stagedAttachments.length, uploadConfig, uploadsEnabled]);
+  }, [stagedAttachments.length, uploadConfig, uploadsEnabled, ceoNamespace]);
 
   // Drag & drop handlers (exposed via className on parent)
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -1201,7 +1208,7 @@ export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function Input
           originalSizeBytes: item.file.size,
           localPathAvailable: hasResolvableLocalPath(item.file),
         });
-        descriptors.push(descriptor);
+        descriptors.push({ ...descriptor, ...(item.ceoArchive ? { ceoArchive: item.ceoArchive } : {}) });
       }
 
       const uploadPayload: OutgoingUploadPayload | undefined = descriptors.length > 0
@@ -1445,6 +1452,7 @@ export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function Input
                     )}
                     <div className="min-w-0 flex-1">
                       <div className="text-[11px] truncate">{item.file.name}</div>
+                      {item.ceoArchive && <div className="text-[10px] text-green">{item.ceoArchive.namespace === 'demo' ? 'Zapisano w demo' : 'Zapisano w archiwum CEO'}</div>}
                       <div className="text-[10px] text-muted-foreground">{formatFileSize(item.file.size)}</div>
                       {showRelativePath && (
                         <div className="text-[9px] mt-0.5 truncate text-muted-foreground">{item.relativePath}</div>
@@ -1575,6 +1583,13 @@ export const InputBar = forwardRef<InputBarHandle, InputBarProps>(function Input
         </button>
       </div>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground px-4 pb-1.5 pl-10 bg-card">
+        {ceoIntakeEnabled && <label className="flex items-center gap-2 text-xs">
+          Archiwum plików:
+          <select aria-label="Przestrzeń danych CEO" value={ceoNamespace} onChange={event => setCEONamespace(event.target.value as 'production' | 'demo')}
+            className="rounded border border-border bg-background p-1">
+            <option value="production">Dane firmowe</option><option value="demo">Demo — dane fikcyjne</option>
+          </select>
+        </label>}
         <span>
           {voiceState === 'recording'
             ? 'Recording… Left Shift to send · Double Left Shift to discard'

@@ -10,6 +10,7 @@ import type { BeadLinkTarget } from '@/features/beads';
 // Lazy-load markdown renderer (includes highlight.js)
 const MarkdownRenderer = lazy(() => import('@/features/markdown/MarkdownRenderer').then(m => ({ default: m.MarkdownRenderer })));
 const InlineChart = lazy(() => import('@/features/charts/InlineChart'));
+const InlineWidget = lazy(() => import('@/features/widgets/InlineWidget').then(m => ({ default: m.InlineWidget })));
 
 // Extract relevant-memories section from user messages
 function extractMemories(rawText: string): { memories: string | null; content: string } {
@@ -209,7 +210,7 @@ function MessageBubbleInner({ msg, index, isCollapsed, isMemoryCollapsed, memory
   }
 
   // Intermediate messages get a compact, de-emphasized render
-  if (isIntermediate) {
+  if (isIntermediate && !msg.widgets?.length) {
     return (
       <div className="group msg msg-assistant relative max-w-full break-words mx-4 my-0.5">
         <div
@@ -300,6 +301,9 @@ function MessageBubbleInner({ msg, index, isCollapsed, isMemoryCollapsed, memory
               </Suspense>
             )}
           </div>
+          {msg.widgets?.map(widget => <Suspense key={widget.docId} fallback={<p>Ładowanie analizy…</p>}>
+            <InlineWidget preview={widget} />
+          </Suspense>)}
           {msg.charts && msg.charts.length > 0 && (
             <div className="w-full max-w-[1120px]">
               <Suspense fallback={<div className="text-muted-foreground text-xs">Loading chart…</div>}>
@@ -315,6 +319,9 @@ function MessageBubbleInner({ msg, index, isCollapsed, isMemoryCollapsed, memory
                 <div key={attachment.id} className="rounded-xl border border-border/60 bg-secondary/30 px-3 py-2 text-[0.733rem] text-muted-foreground">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium text-foreground">{attachment.name}</span>
+                    {attachment.ceoArchive && <span className="cockpit-badge" data-tone="success">
+                      {attachment.ceoArchive.namespace === 'demo' ? 'Zapisano w demo' : 'Zapisano w archiwum CEO'}
+                    </span>}
                     <span className="cockpit-badge" data-tone={attachment.mode === 'file_reference' ? 'warning' : 'primary'}>
                       {attachment.mode === 'file_reference' ? 'Local File' : 'Inline'}
                     </span>
@@ -390,6 +397,7 @@ export const MessageBubble = memo(MessageBubbleInner, (prev, next) => {
   // Content changes (for streaming updates)
   if (prev.msg.rawText !== next.msg.rawText) return false;
   if (prev.msg.html !== next.msg.html) return false;
+  if (prev.msg.widgets !== next.msg.widgets) return false;
   
   // System notification fields
   if (prev.msg.isSystemNotification !== next.msg.isSystemNotification) return false;

@@ -120,6 +120,9 @@ function buildConnectParams(nonce: string) {
     },
     role,
     scopes,
+    // History is projected for the caller's declared renderer capabilities.
+    // The widget route needs the same Canvas handles as the browser client.
+    caps: ['inline-widgets'],
     auth: { token },
     device: createDeviceBlock({
       clientId,

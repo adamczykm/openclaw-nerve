@@ -56,6 +56,7 @@ export interface FileUploadReference {
 }
 
 export interface UploadAttachmentDescriptor {
+  ceoArchive?: { id: string; namespace: 'production' | 'demo'; status: string };
   id: string;
   origin: UploadAttachmentOrigin;
   mode: UploadMode;
@@ -105,6 +106,7 @@ export function generateMsgId(): string {
 }
 
 export interface ChatMsg {
+  widgets?: import('@/features/widgets/canvasPreview').CanvasPreview[];
   /** Stable unique ID for React keying — assigned once at creation, never changes. */
   msgId?: string;
   role: ChatMsgRole;
