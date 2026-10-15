@@ -323,12 +323,12 @@ function MessageBubbleInner({ msg, index, isCollapsed, isMemoryCollapsed, memory
                       {attachment.ceoArchive.namespace === 'demo' ? 'Zapisano w demo' : 'Zapisano w archiwum CEO'}
                     </span>}
                     <span className="cockpit-badge" data-tone={attachment.mode === 'file_reference' ? 'warning' : 'primary'}>
-                      {attachment.mode === 'file_reference' ? 'Local File' : 'Inline'}
+                      {attachment.ceoArchive ? 'Dokument' : attachment.mode === 'file_reference' ? 'Local File' : 'Inline'}
                     </span>
                     <span>{formatBytes(attachment.sizeBytes)}</span>
                     <span>{attachment.mimeType}</span>
                   </div>
-                  {attachment.reference?.path && (
+                  {attachment.reference?.path && !attachment.ceoArchive && (
                     <div className="mt-1 font-mono text-[0.667rem] text-muted-foreground/90">{attachment.reference.path}</div>
                   )}
                 </div>

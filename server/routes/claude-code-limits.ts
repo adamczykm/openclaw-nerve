@@ -131,6 +131,7 @@ const getClaudeCodeLimitsCached = createCachedFetch(getClaudeCodeLimits, undefin
 // ── Route ────────────────────────────────────────────────────────────
 
 app.get('/api/claude-code-limits', async (c) => {
+  if (process.env.NERVE_LOCAL_PROVIDER_LIMITS === 'false') return c.json({ available: false, source: 'disabled' });
   try {
     return c.json(await getClaudeCodeLimitsCached());
   } catch (error) {

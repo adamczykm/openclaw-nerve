@@ -8,8 +8,7 @@
 
 import { Hono } from 'hono';
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { homedir } from 'node:os';
+import { resolveOpenClawConfigPath } from '../lib/openclaw-config.js';
 import { rateLimitGeneral } from '../middleware/rate-limit.js';
 
 interface ChannelsCache {
@@ -23,7 +22,7 @@ let cache: ChannelsCache | null = null;
 /** Read configured channel names from openclaw.json. */
 async function readConfiguredChannels(): Promise<string[]> {
   try {
-    const configPath = join(homedir(), '.openclaw', 'openclaw.json');
+    const configPath = resolveOpenClawConfigPath();
     const raw = await readFile(configPath, 'utf-8');
     const config = JSON.parse(raw) as { channels?: Record<string, unknown> };
     if (!config.channels || typeof config.channels !== 'object') return [];

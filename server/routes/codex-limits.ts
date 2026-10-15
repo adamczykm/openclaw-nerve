@@ -224,6 +224,7 @@ const getCodexLimitsCached = createCachedFetch(getCodexLimits, undefined, {
 // ── Route ────────────────────────────────────────────────────────────
 
 app.get('/api/codex-limits', async (c) => {
+  if (process.env.NERVE_LOCAL_PROVIDER_LIMITS === 'false') return c.json({ available: false, source: 'disabled' });
   try {
     return c.json(await getCodexLimitsCached());
   } catch (error) {

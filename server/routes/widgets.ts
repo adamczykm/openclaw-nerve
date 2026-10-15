@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { gatewayRpcCall } from '../lib/gateway-rpc.js';
 import { rateLimitGeneral } from '../middleware/rate-limit.js';
+import { nativeCanvasHandles } from '../lib/canvas-handles.js';
 
 const app = new Hono();
 
@@ -14,9 +15,7 @@ app.get('/api/widgets/document', rateLimitGeneral, async (c) => {
   }
   try {
     const history = await gatewayRpcCall('chat.history', { sessionKey, limit: 500 }) as { messages?: Array<{ role?: string; content?: Array<{ type?: string; preview?: { viewId?: string; kind?: string; surface?: string; mcpApp?: unknown } }> }> };
-    const present = history.messages?.some(message => message.role === 'assistant' && Array.isArray(message.content)
-      && message.content.some(block => block.type === 'canvas' && block.preview?.kind === 'canvas'
-        && block.preview.surface === 'assistant_message' && !block.preview.mcpApp && block.preview.viewId === docId));
+    const present = history.messages?.some(message => nativeCanvasHandles(message).some(handle => handle.docId === docId));
     if (!present) return c.json({ error: 'Widget is not available in this conversation' }, 404);
     const view = await gatewayRpcCall('canvas.document.view', { docId }) as { html?: unknown };
     if (typeof view.html !== 'string' || Buffer.byteLength(view.html, 'utf8') > 10 * 1024 * 1024) {

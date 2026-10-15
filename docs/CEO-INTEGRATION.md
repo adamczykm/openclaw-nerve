@@ -8,7 +8,9 @@ deployment has been performed yet.
 ## Ownership
 
 OpenClaw owns inference, Canvas documents and session history. Nerve declares
-`inline-widgets`, consumes host-projected `canvas` content blocks, and retrieves
+`inline-widgets`, consumes host-projected `canvas` content blocks and exact
+native `show_widget` tool results retained in compact `tool_call` envelopes,
+and retrieves
 documents with `canvas.document.view` only after checking that the exact
 conversation's retained history contains that document. Never reconstruct a
 widget from arbitrary HTML prose or an external URL. MCP Apps, pinned dashboard
@@ -61,3 +63,9 @@ NERVE_AUTH=true, a separate password hash and HTTPS remote access. Store runtime
 secrets in a mode-0600 file outside Git. Include NERVE_DATA_DIR, configuration
 and chosen upstream/fork revisions in encrypted recovery. The companion
 ceo-assistant meta-wiki owns the deployment and test evidence.
+
+The companion deploy pins rootless Tailscale 1.104.1 and binds Nerve to
+127.0.0.1:3080. Only private Serve is intended; node enrollment remains a human
+action. The initial access policy is two operators (administrator and owner),
+both with full access to one shared CEO workspace. Nerve currently has a shared
+operator password, not per-person application roles or action attribution.

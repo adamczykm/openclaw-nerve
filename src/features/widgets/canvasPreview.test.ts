@@ -18,6 +18,14 @@ describe('native Canvas descriptors', () => {
     expect(extractCanvasPreviews({ role: 'assistant', content: JSON.stringify(message.content) }, 'session')).toEqual([]);
     expect(extractCanvasPreviews(message)).toEqual([]);
   });
+  it('restores the native compact dispatcher result rather than relying on live-only Canvas projection', () => {
+    const result = { kind: 'canvas', presentation: { target: 'assistant_message', title: 'Wynik' }, view: { id: 'stored_123', url: '/__openclaw__/canvas/doc/stored_123/' } };
+    const stored: ChatMessage = { role: 'toolResult', toolName: 'tool_call', content: [{ type: 'text', text: JSON.stringify({ tool: { id: 'openclaw:core:show_widget', name: 'show_widget', source: 'openclaw' }, result: { content: [{ type: 'text', text: JSON.stringify(result) }], details: result } }) }] };
+    expect(processChatMessages([stored], { sessionKey: 'session' })[0].widgets).toEqual([{ docId: 'stored_123', title: 'Wynik', sessionKey: 'session' }]);
+    expect(extractCanvasPreviews({ ...stored, role: 'user' }, 'session')).toEqual([]);
+    expect(extractCanvasPreviews({ ...stored, toolName: 'read' }, 'session')).toEqual([]);
+    expect(extractCanvasPreviews({ ...stored, isError: true }, 'session')).toEqual([]);
+  });
   it('rejects traversal ids and unsupported app surfaces', () => {
     for (const preview of [{ viewId: '../config' }, { surface: 'node_panel' }, { mcpApp: { viewId: 'x' } }]) {
       expect(extractCanvasPreviews({ role: 'assistant', content: [{ type: 'canvas', preview: { kind: 'canvas', surface: 'assistant_message', viewId: 'good', ...preview } }] }, 'session')).toEqual([]);

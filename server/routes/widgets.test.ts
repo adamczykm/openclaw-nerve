@@ -29,6 +29,13 @@ describe('authenticated native widget document route', () => {
     expect((await app.request(url)).status).toBe(404);
     expect(rpc).toHaveBeenCalledTimes(1);
   });
+  it('authorizes the native compact dispatcher result retained after reload', async () => {
+    const details = { kind: 'canvas', presentation: { target: 'assistant_message', title: 'Synthetic' }, view: { id: 'proof_123' } };
+    rpc.mockResolvedValueOnce({ messages: [{ role: 'toolResult', toolName: 'tool_call', content: [{ type: 'text', text: JSON.stringify({ tool: { id: 'openclaw:core:show_widget', name: 'show_widget', source: 'openclaw' }, result: { details } }) }] }] })
+      .mockResolvedValueOnce({ html: '<p>Archived synthetic widget</p>' });
+    expect((await app.request(url)).status).toBe(200);
+    expect(rpc).toHaveBeenLastCalledWith('canvas.document.view', { docId: 'proof_123' });
+  });
   it('rejects paths and external URLs without a gateway call', async () => {
     expect((await app.request('/api/widgets/document?docId=..%2Fsecret&sessionKey=test')).status).toBe(400);
     expect(rpc).not.toHaveBeenCalled();

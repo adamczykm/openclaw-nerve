@@ -299,6 +299,9 @@ export function splitToolCallMessage(m: ChatMessage, options: { sessionKey?: str
   const parsedTimestamp = ts ? new Date(ts as string | number) : null;
   const hasPersistedTimestamp = Boolean(parsedTimestamp && Number.isFinite(parsedTimestamp.getTime()));
   const timestamp = hasPersistedTimestamp ? parsedTimestamp as Date : new Date();
+  if (widgets.length && (m.role === 'tool' || m.role === 'toolResult')) {
+    return [{ role: 'assistant', html: '', rawText: '', timestamp, widgets }];
+  }
 
   // Only interleave for assistant messages with array content containing tool_use
   if (m.role === 'assistant' && Array.isArray(m.content)) {
