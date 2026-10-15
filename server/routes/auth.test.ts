@@ -39,6 +39,17 @@ describe('auth routes', () => {
   }
 
   describe('POST /api/auth/login', () => {
+    it('keeps the login cookie Secure behind a configured private HTTPS proxy', async () => {
+      const app = await buildApp({ publicOrigin: 'https://synthetic-node.example' });
+      const response = await app.request('http://127.0.0.1:3000/api/auth/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: 'test-token' }),
+      });
+      expect(response.status).toBe(200);
+      expect(response.headers.get('set-cookie')).toContain('Secure');
+      expect(response.headers.get('set-cookie')).toContain('HttpOnly');
+      expect(response.headers.get('set-cookie')).toContain('SameSite=Strict');
+    });
     it('returns ok when auth is disabled', async () => {
       const app = await buildApp({ auth: false });
       const res = await app.request('/api/auth/login', {

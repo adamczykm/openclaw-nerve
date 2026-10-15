@@ -69,7 +69,9 @@ app.post('/api/auth/login', rateLimitAuth, async (c) => {
     setCookie(c, SESSION_COOKIE_NAME, token, {
       httpOnly: true,
       sameSite: 'Strict',
-      secure: c.req.url.startsWith('https'),
+      // A private HTTPS proxy terminates TLS before the loopback HTTP hop.
+      // Use the operator's configured origin, never an untrusted forwarded header.
+      secure: c.req.url.startsWith('https') || config.publicOrigin?.startsWith('https://') === true,
       path: '/',
       maxAge: Math.floor(config.sessionTtlMs / 1000),
     });
