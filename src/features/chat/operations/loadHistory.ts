@@ -302,6 +302,27 @@ export function splitToolCallMessage(m: ChatMessage, options: { sessionKey?: str
   if (widgets.length && (m.role === 'tool' || m.role === 'toolResult')) {
     return [{ role: 'assistant', html: '', rawText: '', timestamp, widgets }];
   }
+  // Native history can project tool results inside a user/assistant content
+  // array. Keep them in the normal tool grouping path instead of rendering the
+  // internal result sentinels and raw JSON as a CEO's chat message.
+  if (Array.isArray(m.content) && m.content.some(block => block.type === 'tool_result' || block.type === 'toolResult')) {
+    const result: ChatMsg[] = [];
+    let normal: ContentBlock[] = [];
+    const flush = () => {
+      if (normal.length) result.push(...splitToolCallMessage({ ...m, content: normal }, options));
+      normal = [];
+    };
+    for (const block of m.content) {
+      if (block.type !== 'tool_result' && block.type !== 'toolResult') { normal.push(block); continue; }
+      flush();
+      const content = block.content ?? '';
+      const rawText = typeof content === 'string' ? content : extractText({ role: 'toolResult', content });
+      result.push({ role: 'tool', html: renderMarkdown(rawText), rawText, timestamp,
+        ...(Array.isArray(content) ? { images: extractImageBlocks(content) } : {}) });
+    }
+    flush();
+    return result;
+  }
 
   // Only interleave for assistant messages with array content containing tool_use
   if (m.role === 'assistant' && Array.isArray(m.content)) {

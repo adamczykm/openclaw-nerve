@@ -11,6 +11,19 @@ import {
 import type { ChatMessage } from '@/types';
 import type { ChatMsg } from '@/features/chat/types';
 
+describe('native embedded tool results', () => {
+  it('keeps ordinary text while routing embedded raw results through tool grouping', () => {
+    for (const role of ['user', 'assistant'] as const) {
+      const messages = processChatMessages([{ role, content: [
+        { type: 'text', text: 'Gotowa analiza' },
+        { type: 'tool_result', content: '{"internalSyntheticRows":[1,2,3]}' },
+      ] }]);
+      expect(messages.map(row => row.rawText).join('\n')).toBe('Gotowa analiza');
+      expect(messages.some(row => row.rawText.includes('TOOLRESULT'))).toBe(false);
+    }
+  });
+});
+
 describe('filterMessage', () => {
   it('shows normal user messages', () => {
     expect(filterMessage({ role: 'user', content: 'Hello' })).toBe(true);
