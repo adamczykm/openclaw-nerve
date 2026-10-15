@@ -111,13 +111,15 @@ export interface TokenEntry {
 }
 
 /** Possible roles for chat messages */
-export type ChatMessageRole = 'user' | 'assistant' | 'tool' | 'toolResult' | 'system';
+export type ChatMessageRole = 'user' | 'assistant' | 'tool' | 'toolResult' | 'system' | 'custom';
 
 /** Discriminated content block types */
 export type ContentBlockType = 'text' | 'tool_use' | 'toolCall' | 'tool_result' | 'toolResult' | 'image' | 'thinking' | 'canvas';
 
 /** A single chat message (user, assistant, tool, or system). */
 export interface ChatMessage {
+  customType?: string;
+  runId?: string;
   toolName?: string;
   isError?: boolean;
   role: ChatMessageRole;
@@ -143,6 +145,11 @@ export interface ContentBlock {
   input?: Record<string, unknown>;
   id?: string;
   toolCallId?: string;
+  role?: string;
+  runId?: string;
+  parentToolCallId?: string;
+  toolName?: string;
+  isError?: boolean;
   arguments?: string | Record<string, unknown>;
   content?: string | ContentBlock[];
   /** Image content block fields (from gateway) */

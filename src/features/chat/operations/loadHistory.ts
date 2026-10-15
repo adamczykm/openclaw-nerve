@@ -15,6 +15,7 @@ import { extractEditBlocks, extractWriteBlocks } from '@/features/chat/edit-bloc
 import { extractImages } from '@/features/chat/extractImages';
 import type { MessageImage } from '@/features/chat/types';
 import { extractCanvasPreviews } from '@/features/widgets/canvasPreview';
+import { nativeNestedToolPair } from '../../../../server/lib/canvas-handles';
 
 function toArray<T>(value: T | T[] | undefined): T[] {
   if (Array.isArray(value)) return value;
@@ -294,6 +295,17 @@ function splitSystemEvents(text: string): Array<{ role: 'event' | 'user'; text: 
 }
 
 export function splitToolCallMessage(m: ChatMessage, options: { sessionKey?: string } = {}): ChatMsg[] {
+  // Host-authored Code Mode traces are not assistant prose. Collapse their
+  // technical details through the existing tool UI; restore widgets from the
+  // matched native result, never from exec output or an [embed] text marker.
+  if (m.role === 'custom') {
+    const nested = nativeNestedToolPair(m);
+    if (!nested) return [];
+    return [
+      ...splitToolCallMessage({ ...m, role: 'assistant', content: [nested.call as unknown as ContentBlock] }, options),
+      ...splitToolCallMessage({ ...m, ...nested.result, role: 'toolResult' } as ChatMessage, options),
+    ];
+  }
   const widgets = extractCanvasPreviews(m, options.sessionKey);
   const ts = m.timestamp || m.createdAt || m.ts || null;
   const parsedTimestamp = ts ? new Date(ts as string | number) : null;
@@ -615,8 +627,17 @@ export function tagIntermediateMessages(msgs: ChatMsg[]): ChatMsg[] {
  * filter → split → group → tag
  */
 export function processChatMessages(messages: ChatMessage[], options: { sessionKey?: string } = {}): ChatMsg[] {
+  const nativeDocuments = new Set(messages.flatMap(message => extractCanvasPreviews(message, options.sessionKey).map(widget => widget.docId)));
+  // The final reply can repeat a native embed marker. Hide only standalone
+  // markers whose documents were independently verified in this history.
+  // Prose never creates a widget or grants access to a document.
+  const cleanEmbedText = (text: string) => text.replace(/^[ \t]*\[embed ref="([a-zA-Z0-9_-]{1,128})"[^\r\n\]]{0,512}\/\][ \t]*(?:\r?\n|$)/gm,
+    (whole, docId: string) => nativeDocuments.has(docId) ? '' : whole);
   const chatMsgs: ChatMsg[] = messages
     .filter(filterMessage)
+    .map(message => message.role !== 'assistant' ? message : { ...message,
+      content: typeof message.content === 'string' ? cleanEmbedText(message.content) : message.content.map(block => block.type === 'text' && block.text ? { ...block, text: cleanEmbedText(block.text) } : block),
+    })
     .flatMap((message) => splitToolCallMessage(message, options));
 
   const grouped = groupToolMessages(chatMsgs);

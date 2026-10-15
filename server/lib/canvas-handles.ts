@@ -18,9 +18,27 @@ function decode(value: unknown): unknown {
   try { return JSON.parse(value); } catch { return undefined; }
 }
 
+/** Code Mode persists nested calls as host-authored custom records, separately
+ * from exec's arbitrary JSON output. Accept only a matched call/result pair. */
+export function nativeNestedToolPair(value: unknown): { call: RecordValue; result: RecordValue } | undefined {
+  const message = record(value);
+  if (message?.role !== 'custom' || message.customType !== 'openclaw.nested-tool.v1' || !Array.isArray(message.content)) return;
+  if (message.content.length !== 2 || typeof message.runId !== 'string' || !message.runId) return;
+  const call = record(message.content[0]);
+  const result = record(message.content[1]);
+  if (call?.type !== 'toolCall' || result?.type !== 'toolResult' || result.role !== 'toolResult') return;
+  if (typeof call.id !== 'string' || !call.id || result.toolCallId !== call.id) return;
+  if (typeof call.name !== 'string' || !call.name || result.toolName !== call.name) return;
+  if (call.runId !== message.runId || result.runId !== message.runId) return;
+  if (typeof call.parentToolCallId !== 'string' || !call.parentToolCallId || result.parentToolCallId !== call.parentToolCallId) return;
+  return { call, result };
+}
+
 export function nativeCanvasHandles(value: unknown): NativeCanvasHandle[] {
   const message = record(value);
   if (!message || message.isError === true) return [];
+  const nested = nativeNestedToolPair(message);
+  if (nested) return nativeCanvasHandles(nested.result);
   const found = new Map<string, NativeCanvasHandle>();
   if (message.role === 'assistant' && Array.isArray(message.content)) {
     for (const block of message.content) {

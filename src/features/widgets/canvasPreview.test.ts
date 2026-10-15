@@ -9,6 +9,22 @@ const message: ChatMessage = { role: 'assistant', content: [
 ] };
 
 describe('native Canvas descriptors', () => {
+  it('restores Code Mode widgets while grouping native traces rather than displaying raw technical messages', () => {
+    const details = { kind: 'canvas', presentation: { target: 'assistant_message', title: 'Synthetic' }, view: { id: 'nested_123' } };
+    const trace: ChatMessage = { role: 'custom', customType: 'openclaw.nested-tool.v1', runId: 'run-1', content: [
+      { type: 'toolCall', id: 'nested-1', name: 'show_widget', runId: 'run-1', parentToolCallId: 'exec-1', arguments: { title: 'Synthetic' } },
+      { type: 'toolResult', role: 'toolResult', toolCallId: 'nested-1', toolName: 'show_widget', runId: 'run-1', parentToolCallId: 'exec-1', content: [{ type: 'text', text: JSON.stringify(details) }] },
+    ] };
+    const messages = processChatMessages([trace], { sessionKey: 'session' });
+    expect(messages.flatMap(message => message.widgets ?? [])).toEqual([{ docId: 'nested_123', title: 'Synthetic', sessionKey: 'session' }]);
+    expect(messages.every(message => message.role === 'tool' || message.role === 'assistant')).toBe(true);
+    expect(messages.filter(message => message.role === 'assistant').every(message => message.rawText === '')).toBe(true);
+    expect(processChatMessages([{ ...trace, customType: 'unknown' }], { sessionKey: 'session' })).toEqual([]);
+    const reply: ChatMessage = { role: 'assistant', content: '[embed ref="nested_123" title="Synthetic" height="520" /]\n\nGotowe.' };
+    expect(processChatMessages([trace, reply], { sessionKey: 'session' }).at(-1)?.rawText.trim()).toBe('Gotowe.');
+    expect(processChatMessages([reply], { sessionKey: 'session' })[0].rawText).toContain('[embed');
+    expect(processChatMessages([{ ...reply, role: 'user' }, trace], { sessionKey: 'session' })[0].rawText).toContain('[embed');
+  });
   it('retains widgets through the actual history pipeline with a bound session', () => {
     const messages = processChatMessages([message], { sessionKey: 'agent:main:test' });
     expect(messages[0].widgets).toEqual([{ docId: 'sample_123', title: 'Wynik', sessionKey: 'agent:main:test', preferredHeight: 1200 }]);

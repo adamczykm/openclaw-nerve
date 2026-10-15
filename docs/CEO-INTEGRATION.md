@@ -2,14 +2,16 @@
 
 Upstream: daggerhashimoto/openclaw-nerve, branch master, version 1.5.4.
 This fork adds support for OpenClaw 2026.10.3 native inline HTML widgets and
-an optional connection to the existing CEO document archive. No production
-deployment has been performed yet.
+an optional connection to the existing CEO document archive. The companion
+meta-wiki records the deployed revision and its verification.
 
 ## Ownership
 
 OpenClaw owns inference, Canvas documents and session history. Nerve declares
 `inline-widgets`, consumes host-projected `canvas` content blocks and exact
-native `show_widget` tool results retained in compact `tool_call` envelopes,
+native `show_widget` tool results retained in compact `tool_call` envelopes
+or host-authored Code Mode `openclaw.nested-tool.v1` records with matching
+call/result identity, tool name, run and parent call,
 and retrieves
 documents with `canvas.document.view` only after checking that the exact
 conversation's retained history contains that document. Never reconstruct a

@@ -13,6 +13,18 @@ const url = '/api/widgets/document?docId=proof_123&sessionKey=agent%3Amain%3Ates
 beforeEach(() => { rpc.mockReset(); });
 
 describe('authenticated native widget document route', () => {
+  it('uses host-authored Code Mode results for membership, never assistant embed markers', async () => {
+    const details = { kind: 'canvas', presentation: { target: 'assistant_message' }, view: { id: 'proof_123' } };
+    rpc.mockResolvedValueOnce({ messages: [{ role: 'custom', customType: 'openclaw.nested-tool.v1', runId: 'run-1', content: [
+      { type: 'toolCall', id: 'nested-1', name: 'show_widget', runId: 'run-1', parentToolCallId: 'exec-1' },
+      { type: 'toolResult', role: 'toolResult', toolCallId: 'nested-1', toolName: 'show_widget', runId: 'run-1', parentToolCallId: 'exec-1', content: [{ type: 'text', text: JSON.stringify(details) }] },
+    ] }] }).mockResolvedValueOnce({ html: '<p>Synthetic Code Mode widget</p>' });
+    expect((await app.request(url)).status).toBe(200);
+    rpc.mockReset();
+    rpc.mockResolvedValue({ messages: [{ role: 'assistant', content: '[embed ref="proof_123" /]' }] });
+    expect((await app.request(url)).status).toBe(404);
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
   it('checks session membership and keeps the restrictive document CSP through middleware', async () => {
     rpc.mockResolvedValueOnce({ messages: [{ role: 'assistant', content: [{ type: 'canvas', preview: { kind: 'canvas', surface: 'assistant_message', viewId: 'proof_123' } }] }] })
       .mockResolvedValueOnce({ html: '<h1>Synthetic</h1><script>document.body.dataset.ok="yes"</script>' });
